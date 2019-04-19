@@ -112,7 +112,7 @@ func main() {
 						contains = true
 					}
 				}
-				if contains {
+				if !contains {
 					worklist = append(worklist, blocks[p])
 				}
 			}
