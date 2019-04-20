@@ -10,13 +10,14 @@ import (
 )
 
 type block struct {
-	Name  string
-	Def   string
-	Use   []string
-	Succs []int
-	Preds []int
-	LVin  Set
-	LVout Set
+	Name    string
+	Def     string
+	Use     []string
+	Succs   []int
+	Preds   []int
+	LVin    Set
+	LVout   Set
+	PermOut Set
 }
 
 func main() {
@@ -46,11 +47,12 @@ func main() {
 		ind := len(blocks)
 		blockstr[name] = ind
 		blocks = append(blocks, &block{
-			Name:  name,
-			Def:   def,
-			Use:   use,
-			LVin:  NewSet(),
-			LVout: NewSet(),
+			Name:    name,
+			Def:     def,
+			Use:     use,
+			LVin:    NewSet(),
+			LVout:   NewSet(),
+			PermOut: NewSet(),
 		})
 		str, err = input.ReadString('\n')
 	}
@@ -85,6 +87,31 @@ func main() {
 		}
 		str, err = input.ReadString('\n')
 	}
+	// add return LVouts
+	str, err = input.ReadString('\n')
+	for err == nil {
+		str = strings.ReplaceAll(str, "\r", "")
+		str = strings.Trim(str, "\n")
+		if str == "" {
+			break
+		}
+		strs := strings.Split(str, " ")
+		if len(strs) != 2 {
+			fmt.Fprintf(os.Stderr, "could not parse line \"%s\", requires 2 items\n", str)
+			os.Exit(1)
+		}
+		fi, ok := blockstr[strs[0]]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "node not recognized \"%s\"\n", strs[0])
+			os.Exit(1)
+		}
+		fb := blocks[fi]
+		outs := strings.Split(strs[1], ",")
+		for _, out := range outs {
+			fb.PermOut.Add(out)
+		}
+		str, err = input.ReadString('\n')
+	}
 
 	worklist := []*block{}
 	for i := range blocks {
@@ -92,8 +119,8 @@ func main() {
 	}
 	// begin iterating
 	for len(worklist) != 0 {
-		out := NewSet()
 		bl := worklist[0]
+		out := bl.PermOut.Copy()
 		worklist = worklist[1:]
 		for _, s := range bl.Succs {
 			out.Union(blocks[s].LVin)
